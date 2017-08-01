@@ -1,0 +1,55 @@
+{{!< layout/default}}
+
+{{#extend "css"}}
+{{/extend}}
+
+<div class="container-fluid">
+  <div class="row">
+
+    <div class="col-md-10 col-md-offset-1">
+
+      <div class="col-md-4 col-xs-12 box-content-green">
+        <a class="no-decoration" href="/createR">
+          <i class="fa fa-5x fa-map-marker" aria-hidden="true"></i>
+
+          <h1 style="color:white">Recorridos</h1>
+          <h2 style="color:white">Esta herramienta le permite crear, modificar o eliminar recorridos en distintas ciudades, las cuales posteriormente podrá asignar a un paradero.</h2>
+        </a>
+      </div>
+
+
+      <div class="col-md-4 col-xs-12 box-content-red">
+        <a class="no-decoration" href="/createC">
+          <i class="fa fa-5x fa-taxi" aria-hidden="true"></i>
+
+          <h1 style="color:white">Colectivos</h1>
+          <h2 style="color:white">Esta herramienta le permite crear, modificar o eliminar colectivos, los cuales posteriormente podrá asignar a un recorrido.</h2>
+        </a>
+      </div>
+
+      <div class="col-md-4 col-xs-12 box-content-yellow">
+        <a class="no-decoration" href="/createP">
+          <i class="fa fa-5x fa-map-pin" aria-hidden="true"></i>
+
+          <h1 style="color:white">Paraderos</h1>
+          <h2 style="color:white">Esta herramienta le permite crear, modificar o eliminar paraderos, a los cuales posteriormente podrá asignar multiples recorridos.</h2>
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+
+
+</div>
+
+
+
+{{#extend "js"}}
+<script>
+$(document).ready(function() {
+
+});
+</script>
+
+{{/extend}}

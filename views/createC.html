@@ -1,0 +1,309 @@
+{{!< layout/default}}
+
+{{#extend "css"}}
+<style>
+tbody > tr > td {
+  color:#1abc9c;
+  text-align: center;
+}
+
+table.dataTable tbody tr.selected {
+    color: white;
+    background-color: #464646;
+}
+
+</style>
+{{/extend}}
+
+<a href="/admin" class="home-btn btn btn-info" style="margin-left:60px !important; margin-top:-227px;">
+  <i class="fa fa-home" aria-hidden="true"></i>
+</a>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-md-offset-3">
+      <div class="row">
+        <div class="col-md-4">
+          <button class="btn btn-success" role="button" data-toggle="collapse" href="#collapseExample" aria-expanded="false" aria-controls="collapseExample"><h1>CREAR</h1></button>
+        </div>
+
+        <div class="col-md-4">
+          <button class="btn btn-warning" id="mod" role="button" data-toggle="collapse" href="#collapseMod" aria-expanded="false" aria-controls="collapseMod" disabled><h1>MODIFICAR</h1></button>
+        </div>
+
+        <div class="col-md-4">
+          <button class="btn btn-danger" id="delButton" disabled><h1>ELIMINAR</h1></button>
+        </div>
+      </div>
+      <br>
+
+      <div class="collapse" id="collapseExample">
+        <div class="well">
+
+            <div class="form-group">
+              <label>Patente</label>
+              <input type="text" class="form-control" id="newPatent" placeholder="Patente" required>
+            </div>
+            <div class="form-group">
+              <label>Código</label>
+              <input type="text" class="form-control" id="newCode" placeholder="Código" required>
+            </div>
+
+            <button type="submit" id="createButton" class="btn btn-default">Crear</button>
+
+        </div>
+      </div>
+
+      <div class="collapse" id="collapseMod">
+        <div class="well">
+
+            <div class="form-group">
+              <label>Patente</label>
+              <input type="text" class="form-control" id="modPatent" placeholder="Patente" required>
+            </div>
+            <div class="form-group">
+              <label>Código</label>
+              <input type="text" class="form-control" id="modCode" placeholder="Código" required>
+            </div>
+
+            <button type="submit" id="modButton" class="btn btn-default">Modificar</button>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <br>
+
+  <div class="row">
+
+    <div class="col-md-10 col-md-offset-1" style="background:#bdc3c7">
+      <table id="mytable" class="table" cellspacing="0" width="100%">
+        <thead>
+          <th style="display:none">_id</th>
+          <th style="display:none">_rev</th>
+          <th>Patente</th>
+          <th>Código</th>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+
+    </div>
+
+  </div>
+
+
+</div>
+
+
+
+{{#extend "js"}}
+<script>
+var datatable;
+var rowData;
+var selectedRow;
+
+$('#createButton').on('click', function(){
+  var patent = $('#newPatent').val();
+  var code = $('#newCode').val();
+  $('#newPatent').val('');
+  $('#newCode').val('');
+
+  if(patent.length == 6) {
+    $.ajax({
+      url: '/api/colectivos',
+      type: 'POST',
+      data: {patent: patent, code: code}
+    })
+    .done(function(data) {
+      if (data.error) {
+        swal({
+          title: data.error,
+          type: 'error',
+          timer: 2000
+        })
+      }else {
+
+        $('#collapseExample').toggleClass('in')
+
+        datatable.row.add( {
+          "_id": data._id,
+          "_rev": data._rev,
+          "patent": data.patent,
+          "code": data.code
+        }).draw();
+
+        swal({
+          title: 'Colectivo de patente ' +data.patent+ ' creado correctamente!',
+          type: 'success',
+          timer: 1500
+        });
+      }
+    })
+    .fail(function() {
+      console.log("error al crear");
+    });
+  }else{
+    swal({
+      title: 'La patente debe contener 6 carácteres',
+      type: 'warning',
+      timer: 3000
+    })
+  }
+
+});
+
+$('#mytable tbody').on( 'click', 'tr', function () {
+  selectedRow = datatable.row(this);
+  rowData = datatable.row( this ).data()
+
+
+  $('#modPatent').val(rowData.patent);
+  $('#modCode').val(rowData.code);
+
+  if ( $(this).hasClass('selected') ) {
+    $('#mod').prop('disabled', true);
+    $('#delButton').prop('disabled', true);
+  }
+  else {
+    $('#mod').prop('disabled', false);
+    $('#delButton').prop('disabled', false);
+  }
+
+});
+
+
+$('#modButton').on('click', function(e){
+  var patent = $('#modPatent').val();
+  var code = $('#modCode').val();
+
+  swal({
+    title: 'Estás seguro de modificar el colectivo de patente '+ rowData.patent +'?',
+    type: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, modificar!',
+    cancelButtonText: 'No, cancelar!',
+    confirmButtonClass: 'btn btn-warning',
+    cancelButtonClass: 'btn btn-primary',
+    buttonsStyling: false
+  }).then(function () {
+    console.log("test")
+    $.ajax({
+      url: '/api/colectivos',
+      type: 'PUT',
+      data: {id: rowData._id, rev: rowData._rev, patent: patent, code, code }
+    })
+    .done(function(data) {
+      datatable
+          .row( selectedRow )
+          .remove()
+          .draw();
+
+      datatable.row.add( {
+        "_id": data._id,
+        "_rev": data._rev,
+        "patent": data.patent,
+        "code": data.code
+      }).draw();
+
+      swal({
+        title: 'Modificado!',
+        type: 'success',
+        timer: 1500
+      })
+
+    })
+    .fail(function() {
+      console.log("error al modificar");
+    });
+  })
+});
+
+
+$('#delButton').on('click', function(e){
+  console.log(rowData);
+  swal({
+    title: 'Estás seguro de eliminar el colectivo de patente '+ rowData.patent +'?',
+    text: "No podrás revertir los cambios",
+    type: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, eliminar!',
+    cancelButtonText: 'No, cancelar!',
+    confirmButtonClass: 'btn btn-danger',
+    cancelButtonClass: 'btn btn-primary',
+    buttonsStyling: false
+  }).then(function () {
+
+    $.ajax({
+      url: '/api/colectivos',
+      type: 'DELETE',
+      data: {id: rowData._id, rev: rowData._rev}
+    })
+    .done(function(data) {
+      datatable
+          .row( selectedRow )
+          .remove()
+          .draw();
+
+      swal({
+        title: 'Eliminado!',
+        type: 'success',
+        timer: 1500
+      })
+    })
+    .fail(function() {
+      console.log("error al eliminar");
+    });
+
+  })
+});
+
+$(document).ready(function() {
+  getColectivos();
+});
+
+function getColectivos() {
+  let prom = new Promise((resolve, reject) => {
+    $.ajax({
+      url: '/api/colectivos',
+      type: 'GET'
+    })
+    .done(function(data) {
+      resolve(data);
+    })
+    .fail(function() {
+      console.log("error");
+    });
+  });
+
+  prom.then((data) => {
+    datatable = $('#mytable').DataTable( {
+      "responsive": true,
+      "aaData" : data,
+      "select": true,
+      "columns" : [
+          {"data" : "_id"},
+          {"data" : "_rev"},
+          {"data" : "patent"},
+          {"data" : "code"},
+      ],
+      "columnDefs": [
+          {"targets": [ 0,1 ],
+           "visible": false,
+           "searchable": false},
+      ],
+    });
+  });
+
+}
+
+
+</script>
+
+{{/extend}}

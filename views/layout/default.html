@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <!-- Meta, title, CSS, favicons, etc. -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Colectivos</title>
+
+  <!-- Nprogress -->
+  <link rel="stylesheet" href="/public/nprogress/nprogress.css">
+  <script src="/public/nprogress/nprogress.js"></script>
+  <script>
+    NProgress.start();
+  </script>
+  <!-- Nprogress -->
+
+  <link href="/public/bootstrap/css/bootstrap.cosmo.min.css" rel="stylesheet">
+  <link href="/public/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+  <link href="/public/css/sweetalert2.min.css" rel="stylesheet">
+  <link href="/public/css/appbutton.css" rel="stylesheet">
+  <link href="/public/css/pushy.css" rel="stylesheet">
+  <link href="/public/css/demo.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.10.15/css/dataTables.bootstrap.min.css">
+  <link href="https://cdn.datatables.net/v/bs/jqc-1.12.4/dt-1.10.15/af-2.2.0/fc-3.2.2/fh-3.1.2/r-2.1.1/rg-1.0.0/rr-1.2.0/sc-1.4.2/se-1.2.2/datatables.min.css"/>
+
+
+
+
+  {{#block "css"}}
+  {{/block}}
+</head>
+
+<body style="background: #464646">
+    <a class="menu-btn btn btn-success" style="background:#1ABC9C; margin-left:0px !important;">
+      <i class="fa fa-bars" aria-hidden="true"></i>
+    </a>
+  <!-- Pushy Menu -->
+  <nav class="pushy pushy-left" data-focus="#first-link">
+
+    <div class="pushy-content">
+      <div class="top-menu">
+        <span>
+          <i style="margin-top:15px; margin-left:20px;" class="fa fa-5x fa-user-circle-o" aria-hidden="true"></i>
+        </span>
+        <p style="color:white; margin-top:-60px; margin-left:100px; font-size:20px;">
+          {{ credentials.name }} {{ credentials.lastname }}
+        </p>
+        <p style="color:black; margin-top:-10px; margin-left:100px; font-size:20px;">
+          {{ credentials.role }}
+        </p>
+        <br>
+
+      </div>
+        <ul>
+            <li class="pushy-link greenBorder"><a href="/createC"><i class="fa fa-id-card-o" aria-hidden="true"></i>  Colectivos</a></li>
+            <li class="pushy-link greenBorder"><a href="/createP"><i class="fa fa-calendar" aria-hidden="true"></i>  Paraderos</a></li>
+            <li class="pushy-link greenBorder"><a href="/createR"><i class="fa fa-wrench" aria-hidden="true"></i>  Recorridos</a></li>
+        </ul>
+    </div>
+
+
+    <div style="position:absolute; bottom:70px; height: 10px; width:100%; background-color:#1abc9c;"></div>
+
+    <span>
+      <a style="position:absolute; bottom:0px; margin-left:50px;" href="/logout">Cerrar Sesión <i class="fa fa-2x fa-power-off" aria-hidden="true"></i></a>
+    </span>
+
+
+  </nav>
+
+  <!-- Site Overlay -->
+  <div class="site-overlay"></div>
+
+  <div id="container">
+    {{{content}}}
+  </div>
+
+
+  <script src="https://maps.google.com/maps/api/js?key=AIzaSyAzSBp9riwBBxtGG_EiS0xFy40hW7buXYo"></script>
+  <script src="/public/js/jquery.min.js"></script>
+  <script src="/public/js/jquery.qrcode.min.js"></script>
+  <script src="/public/bootstrap/js/bootstrap.min.js"></script>
+  <script src="/public/js/gmaps.js"></script>
+  <script src="/public/js/moment.js"></script>
+  <script src="/public/js/moment-timezone-with-data.js"></script>
+  <script src="/public/js/sweetalert2.min.js"></script>
+  <script src="/public/js/pushy.js"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/v/bs/jqc-1.12.4/dt-1.10.15/af-2.2.0/fc-3.2.2/fh-3.1.2/r-2.1.1/rg-1.0.0/rr-1.2.0/sc-1.4.2/se-1.2.2/datatables.min.js"></script>
+
+
+  <script>
+    function getTime(c) {
+      if(c) {
+        return moment.tz(c).format('YYYY-MM-DDTHH:mm:ss.SSS');
+      }else {
+        return moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSS');
+      }
+    }
+  </script>
+
+  <script>
+    function getParameterByName(name, url) {
+      if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+  </script>
+
+  {{#block "js"}}
+  {{/block}}
+
+
+  <script>
+    NProgress.done();
+  </script>
+</body>
+
+</html>
