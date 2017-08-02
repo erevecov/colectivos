@@ -7,7 +7,9 @@ let db = cloudant.db.use("c_recorridos");
 const Recorridos = [{
     method: 'GET',
     path: '/api/recorridos',
-    handler: function(request, reply) {
+    config: {
+      auth: false,
+      handler: function(request, reply) {
 
       db.find({
         "selector": {
@@ -30,6 +32,46 @@ const Recorridos = [{
 
           return reply(result.docs);
         });
+      }
+    }
+},
+{
+    method: 'POST',
+    path: '/api/searchRecorridos',
+    config: {
+      auth: false,
+      handler: (request, reply) => {
+        let name = request.payload.name;
+        
+        db.find({
+          "selector": {
+            "_id": {"$regex": "recorrido"},
+            "name": "egj"
+          },
+          "fields": [
+   
+          ],
+          "sort": [{
+            "_id": "desc"
+          }],
+          "limit": 1
+          }, function(err, result) {
+            if (err) {
+              throw err;
+            }
+
+            console.log(result)
+            return reply(result.docs);
+
+          });
+              
+
+        },
+        validate: {
+          payload: Joi.object().keys({
+            name: Joi.string()
+          })
+      }
     }
 },
 {
@@ -59,11 +101,11 @@ const Recorridos = [{
 			  }
 
 			  if(result.docs.length == 0) {
-			    db.insert({ name: name, path: path}, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_recorrido', function(err, body, header) {
+			    db.insert({ name: name, path: path, colectivos: []}, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_recorrido', function(err, body, header) {
 			      if (err) {
 			        return console.log(err.message);
 			      }else{
-			        var obj = {_id: body.id, _rev: body.rev, name: name, colectivos: []};
+			        var obj = {_id: body.id, _rev: body.rev, name: name, path:path, colectivos: []};
 			        return reply(obj);
 			      }
 			    });
@@ -94,10 +136,13 @@ const Recorridos = [{
         let path = JSON.parse(request.payload.path);
         let colectivos = JSON.parse(request.payload.colectivos);
 
+
+        console.log(id, rev, name, path, colectivos)
+
         db.destroy(id, rev, function(err, result, header) {
           if (!err) {
             
-            db.insert({ name: name, path: path, colectivos: colectivos }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_recorrido', function(err, body, header) {
+            db.insert({ name: name, path: path, colectivos: colectivos }, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_recorrido', function(err, body, header) {
               if (err) {
                 return console.log(err.message);
               }else{
@@ -105,7 +150,9 @@ const Recorridos = [{
                 var newObj = {
                   _id: body.id,
                   _rev: body.rev,
-                  name: name
+                  name: name,
+                  path: path,
+                  colectivos: colectivos
                 }
 
                 return reply(newObj);

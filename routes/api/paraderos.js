@@ -8,8 +8,9 @@ let db = cloudant.db.use("c_paraderos");
 const Paraderos = [{
     method: 'GET',
     path: '/api/paraderos',
-    handler: function(request, reply) {
-
+    config: {
+      auth: false,
+      handler: function(request, reply) {
       db.find({
         "selector": {
           "_id": {"$regex": "paradero"},
@@ -33,7 +34,9 @@ const Paraderos = [{
 
           return reply(result.docs);
         });
+      }
     }
+ 
 },
 {
     method: 'PUT',
@@ -42,7 +45,7 @@ const Paraderos = [{
         handler: (request, reply) => {
             let id = request.payload.id;
             let rev = request.payload.rev;
-            let recorridos = request.payload.recorridos;
+            let recorridos = JSON.parse(request.payload.recorridos);
             let name = request.payload.name;
             let lat = request.payload.lat;
             let lng = request.payload.lng;
@@ -71,12 +74,15 @@ const Paraderos = [{
                   throw err;
                 }
 
+
                 if(result.docs.length == 0) {
+
+                  console.log(id,rev,recorridos,name,lat,lng)
 
                   db.destroy(id, rev, function(err, result, header) {
                     if (!err) {
-                      QRCode.toDataURL(name+lat+lng, function (err, url) {
-                        db.insert({ recorridos: recorridos, name: name, lat: lat, lng: lng, base64:url }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_paradero', function(err, body, header) {
+                      QRCode.toDataURL('http://186.64.123.4:3002/?name='+name, function (err, url) {
+                        db.insert({ recorridos: recorridos, name: name, lat: lat, lng: lng, base64:url }, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_paradero', function(err, body, header) {
                           if (err) {
                             return console.log(err.message);
                           }else{
@@ -127,15 +133,15 @@ const Paraderos = [{
       handler: (request, reply) => {
         let id = request.payload.id;
         let rev = request.payload.rev;
-        let recorridos = request.payload.recorridos;
+        let recorridos = JSON.parse(request.payload.recorridos);
         let name = request.payload.name;
         let lat = request.payload.lat;
         let lng = request.payload.lng;
 
         db.destroy(id, rev, function(err, result, header) {
           if (!err) {
-            QRCode.toDataURL(name+lat+lng, function (err, url) {
-              db.insert({ recorridos: recorridos, name: name, lat: lat, lng: lng, base64:url }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_paradero', function(err, body, header) {
+            QRCode.toDataURL('http://186.64.123.4:3002/?name='+name, function (err, url) {
+              db.insert({ recorridos: recorridos, name: name, lat: lat, lng: lng, base64:url }, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_paradero', function(err, body, header) {
                 if (err) {
                   return console.log(err.message);
                 }else{
@@ -154,6 +160,8 @@ const Paraderos = [{
                 }
               });
             })
+          }else {
+            console.log(err)
           }
         });
                   
@@ -173,6 +181,45 @@ const Paraderos = [{
 },
 {
     method: 'POST',
+    path: '/api/searchParadero',
+    config: {
+      auth: false,
+      handler: (request, reply) => {
+        let name = request.payload.name;
+        
+        db.find({
+          "selector": {
+            "_id": {"$regex": "paradero"},
+            "name": name
+          },
+          "fields": [
+            "lat",
+            "lng",
+            "recorridos"
+          ],
+          "sort": [{
+            "_id": "desc"
+          }],
+          "limit": 1
+          }, function(err, result) {
+            if (err) {
+              throw err;
+            }
+            return reply(result.docs[0]);
+
+          });
+              
+
+        },
+        validate: {
+          payload: Joi.object().keys({
+            name: Joi.string()
+          })
+      }
+    }
+},
+{
+    method: 'POST',
     path: '/api/paraderos',
     config: {
         handler: (request, reply) => {
@@ -180,7 +227,7 @@ const Paraderos = [{
             let lat = request.payload.lat;
             let lng = request.payload.lng;
 
-            QRCode.toDataURL(name+lat+lng, function (err, url) {
+            QRCode.toDataURL('http://186.64.123.4:3002/?name='+name, function (err, url) {
               db.find({
                 "selector": {
                   "_id": {"$regex": "paradero"},
@@ -204,7 +251,7 @@ const Paraderos = [{
                         return console.log(err.message);
                       }else{
 
-                        var obj = {_id: body.id, _rev: body.rev, name: name, lat: lat, lng: lng, base64: url};
+                        var obj = {_id: body.id, _rev: body.rev, name: name, lat: lat, lng: lng, base64: url, recorridos: []};
                         return reply(obj);
                       }
                     });

@@ -7,8 +7,9 @@ let db = cloudant.db.use("c_colectivos");
 const Colectivos = [{
     method: 'GET',
     path: '/api/colectivos',
-    handler: function(request, reply) {
-
+    config: {
+      auth:false,
+      handler: function(request, reply) {
       db.find({
         "selector": {
           "_id": {"$regex": "colectivo"},
@@ -28,6 +29,7 @@ const Colectivos = [{
 
           return reply(result.docs);
         });
+      }
     }
 },
 {
@@ -41,7 +43,7 @@ const Colectivos = [{
 
             db.destroy(id, rev, function(err, result, header) {
               if (!err) {
-                db.insert({ patent: patent }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_colectivo', function(err, body, header) {
+                db.insert({ patent: patent }, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_colectivo', function(err, body, header) {
                   if (err) {
                     return console.log(err.message);
                   }else{

@@ -128,7 +128,7 @@ table.dataTable tbody tr.selected {
         <thead>
           <th style="display:none">_id</th>
           <th style="display:none">_rev</th>
-          <th style="display:none">recorridos</th>
+          <!--<th style="display:none">recorridos</th>-->
           <th>Nombre</th>
           <th>Latitud</th>
           <th>Longitud</th>
@@ -152,6 +152,7 @@ var datatable;
 var recorridosTable;
 var recorridosTableCount = 0;
 var rowData;
+var allRowData = [];
 var selectedRow;
 var selectedParadero;
 var allParaderos = [];
@@ -232,7 +233,7 @@ function closeAllInfoWindows() {
   }
 }
 
-function newParadero(name,lat,lng,base64) {
+function newParadero(id, rev, name,lat,lng,base64,recorridos) {
   var paradero = map.addMarker({
       lat: lat,
       lng: lng,
@@ -259,7 +260,7 @@ function newParadero(name,lat,lng,base64) {
         $('#delButton').prop('disabled', false);
 
         selectedRow = datatable.rows('.selected');
-        rowData = datatable.rows('.selected').data()[0]
+        rowData = {id, rev, name,lat,lng,base64,recorridos} //datatable.rows('.selected').data()[0]
 
         console.log(selectedRow, rowData)
 
@@ -274,13 +275,15 @@ function newParadero(name,lat,lng,base64) {
     });
 
     allParaderos[name] = paradero;
+    console.log(recorridos)
+    allRowData[name] = {id, rev, name,lat,lng,base64,recorridos};
     infoWindows.push(paradero.infoWindow);
 }
 
 function chargeP(data) {
     if(map) {
       $.each(data, function(index, val) {
-        newParadero(val.name, val.lat, val.lng, val.base64)
+        newParadero(val._id, val._rev, val.name, val.lat, val.lng, val.base64, val.recorridos)
       });
     }
 }
@@ -334,12 +337,12 @@ $('#createButton').on('click', function(){
 
         flag.setMap(null);
 
-        newParadero(data.name, data.lat, data.lng, data.base64)
+        newParadero(data._id, data._rev, data.name, data.lat, data.lng, data.base64, data.recorridos)
 
         datatable.row.add( {
           "_id": data._id,
           "_rev": data._rev,
-          "recorridos": data.recorridos,
+          //"recorridos": data.recorridos,
           "name": data.name,
           "lat": data.lat,
           "lng": data.lng,
@@ -378,20 +381,21 @@ $('#savePR').click(function(){
     if($(element).hasClass('selected')){
       recorridos.push($(element)[0].innerText);
     } 
-  }); 
+  });
 
   recorridosString = JSON.stringify(recorridos);
 
+ 
   $.ajax({
     url: '/api/paraderosR',
     type: 'PUT',
-    data: {id: rowData._id, rev: rowData._rev, recorridos: recorridosString, name:rowData.name, lat: rowData.lat, lng: rowData.lng},
+    data: {id: rowData.id, rev: rowData.rev, recorridos: recorridosString, name:rowData.name, lat: rowData.lat, lng: rowData.lng},
   })
   .done(function(data) {
-
     allParaderos[rowData.name].setMap(null);
-    newParadero(data.name, data.lat, data.lng, data.base64);
-    
+    console.log(data)
+    newParadero(data._id, data._rev, data.name, data.lat, data.lng, data.base64, data.recorridos);
+
     datatable
               .row( selectedRow )
               .remove()
@@ -402,7 +406,7 @@ $('#savePR').click(function(){
     datatable.row.add( {
             "_id": data._id,
             "_rev": data._rev,
-            "recorridos": recorridos,
+            //"recorridos": recorridos,
             "name": data.name,
             "lat": data.lat,
             "lng": data.lng,
@@ -417,7 +421,8 @@ $('#savePR').click(function(){
 
 $('#mytable tbody').on( 'click', 'tr', function () {
   selectedRow = datatable.row(this);
-  rowData = datatable.row( this ).data()
+  rowData = allRowData[datatable.row( this ).data().name];
+  console.log(rowData)
 
   closeAllInfoWindows();
   allParaderos[rowData.name].infoWindow.open(map, allParaderos[rowData.name]);
@@ -446,29 +451,16 @@ $('#asignRecorrido').click(function() {
     url: '/api/recorridos'
   })
   .done(function(data) {
-    if (recorridosTableCount === 0) {
-      recorridosTable = $('#recorridosTable').dataTable({
-      "bAutoWidth" : false,
-      "aaData": data,
-      "columns" : [ 
-        {"data" : "name"}
-      ],
-      "select":
-        {
-          style: 'multiple'
-        }
-      });
+    recorridosTable.rows().remove().draw();  //limpiar tabla de recorridos
 
-    }else{
-      recorridosTableCount++;
-      recorridosTable.rows().remove().draw();  //limpiar tabla de recorridos
+    $.each(data, function(index, val) {
 
-      $.each(data, function(index, val) {
-        recorridosTable.row.add( {
-          "recorrido": data.name
-        }).draw();
-      });
-    }
+      recorridosTable.row.add( {
+        "name": val.name
+      }).draw();
+      
+    });
+    
 
     
     $('#recorridosTable tr').each(function(index, element){ // pre seleccionar recorridos
@@ -493,6 +485,8 @@ $('#modButton').on('click', function(e){
   var name = $('#modName').val();
   var lat = $('#modLat').val();
   var lng = $('#modLng').val();
+  var recr = JSON.stringify(rowData.recorridos); 
+
 
   if(name.length >=3 && lat.length >= 6 && lng.length >= 6) {
     swal({
@@ -507,11 +501,11 @@ $('#modButton').on('click', function(e){
       cancelButtonClass: 'btn btn-primary',
       buttonsStyling: false
     }).then(function () {
-      console.log("test")
+
       $.ajax({
         url: '/api/paraderos',
         type: 'PUT',
-        data: {id: rowData._id, rev: rowData._rev, name: name, lat: lat, lng: lng }
+        data: {id: rowData.id, rev: rowData.rev, name: name, lat: lat, lng: lng, recorridos: recr}
       })
       .done(function(data) {
 
@@ -523,7 +517,7 @@ $('#modButton').on('click', function(e){
           })
         }else{
           allParaderos[rowData.name].setMap(null);  /*                                    RECARGAR PARADERO      */
-          newParadero(data.name, data.lat, data.lng, data.base64);
+          newParadero(data._id, data._rev,data.name, data.lat, data.lng, data.base64, data.recorridos);
           $('#collapseMod').toggleClass('in');
           $('#modName').val('');
           $('#modLat').val('');
@@ -540,6 +534,7 @@ $('#modButton').on('click', function(e){
           datatable.row.add( {
             "_id": data._id,
             "_rev": data._rev,
+            //"recorridos": data.recorridos,
             "name": data.name,
             "lat": data.lat,
             "lng": data.lng
@@ -590,7 +585,7 @@ $('#delButton').on('click', function(e){
     $.ajax({
       url: '/api/paraderos',
       type: 'DELETE',
-      data: {id: rowData._id, rev: rowData._rev}
+      data: {id: rowData.id, rev: rowData.rev}
     })
     .done(function(data) {
       datatable.search('').columns().search('').draw();
@@ -648,17 +643,30 @@ function getParaderos() {
       "columns" : [
           {"data" : "_id"},
           {"data" : "_rev"},
-          {"data" : "recorridos"},
+          //{"data" : "recorridos"},
           {"data" : "name"},
           {"data" : "lat"},
           {"data" : "lng"},
       ],
       "columnDefs": [
-          {"targets": [ 0,1,2 ],
+          {"targets": [ 0,1 ],
            "visible": false,
            "searchable": false},
       ],
     });
+
+    recorridosTable = $('#recorridosTable').DataTable({
+      "bAutoWidth" : false,
+      "data": [],
+      "columns" : [ 
+        {"data" : "name"}
+      ],
+      "select":
+        {
+          style: 'multiple'
+        }
+    });
+
   });
 
 }
