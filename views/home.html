@@ -28,10 +28,12 @@
 
 
 <body>
+   <input class="form-control" type="text" id="searchRecorrido" style="font-size: 30px; z-index:1000; width:300px; position:fixed; height:60px; right:80px; top:0;">
 
-  <button style="right:0; top:0; margin-left:0; position:fixed; z-index:2" id="createGeo" class="btn btn-app" data-toggle="tooltip" data-placement="bottom"  title="Crear GeoZona">
-    <i id="createGeoIcon" class="fa fa-taxi" aria-hidden="true"></i>
+  <button style="right:0; top:0; margin-left:0; position:fixed; z-index:2" id="searchButton" class="btn btn-app" data-toggle="tooltip" data-placement="bottom"  title="Buscar recorridos">
+    <i class="fa fa-taxi" aria-hidden="true"></i>
   </button>
+
 
   <div style="width: 100%;" id="map-container">
     <div id="map" style="width: 100%; height: 100%; z-index: 1"></div>
@@ -71,7 +73,11 @@
   <script>
 
   
-  var name = getParameterByName('name');
+  var name;
+  if(getParameterByName('name')) {
+    name = getParameterByName('name');
+  };
+
   //var lat = getParameterByName('lat');
   //var lng = getParameterByName('lng');
   //var zoom = parseInt(getParameterByName('zoom'));
@@ -133,7 +139,7 @@
         });
 
 
-        if(name) {
+        if(name.length > 3 && map) {
           prom1 = new Promise((resolve, reject) => {
             $.ajax({
             url: '/api/searchParadero',
@@ -170,6 +176,7 @@
           });
 
           prom1.then((data1) => {
+            //console.log(data1.recorridos)
             $.each(data1.recorridos, function(index, val) {
               console.log(val)
                $.ajax({
@@ -178,7 +185,20 @@
                 data: {name: val},
                 })
                 .done(function(data2) {
-                  console.log(data2)
+                  var path = [];
+
+                  $.each(data2.path, function(index, val) {
+                     path.push([val.cord[0],val.cord[1]])
+                  });
+
+                  map.drawPolyline({
+                    path: path,
+                    strokeColor: getRandomColor(),
+                    strokeOpacity: 1,
+                    strokeWeight: 6
+                  });
+                  
+                  
                 })
                 .fail(function() {
                   console.log("error");
@@ -188,15 +208,60 @@
         
 
         }else{
-
           //Logica en caso de que no se inicie desde el qr
-
+          console.log('test')
 
 
         }
 
       }, 500);
   });
+
+  $('#searchButton').click(function(){
+    var streetSearch = $('#searchRecorrido').val();
+    $('#searchRecorrido').val('');
+
+    $.ajax({
+      url: '/api/searchRecorridosByStreet',
+      type: 'POST',
+      data: {street: streetSearch},
+    })
+    .done(function(data) {
+
+      $.each(data, function(index, val) {
+        console.log(data);
+        var path = [];
+
+        $.each(val.path, function(index, val) {
+           path.push([val.cord[0],val.cord[1]])
+        });
+
+        map.drawPolyline({
+          path: path,
+          strokeColor: getRandomColor(),
+          strokeOpacity: 1,
+          strokeWeight: 6
+        });   
+      });
+      
+    })
+    .fail(function() {
+      console.log("error");
+    });
+    
+
+
+  });
+
+  function getRandomColor() {
+    var letters = '0123456789ABCDEF';
+    var color = '#';
+    for (var i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+    }
+
   </script>
 
   <script>

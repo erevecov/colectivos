@@ -46,7 +46,7 @@ const Recorridos = [{
         db.find({
           "selector": {
             "_id": {"$regex": "recorrido"},
-            "name": "egj"
+            "name": name
           },
           "fields": [
    
@@ -61,7 +61,7 @@ const Recorridos = [{
             }
 
             console.log(result)
-            return reply(result.docs);
+            return reply(result.docs[0]);
 
           });
               
@@ -70,6 +70,44 @@ const Recorridos = [{
         validate: {
           payload: Joi.object().keys({
             name: Joi.string()
+          })
+      }
+    }
+},
+{
+    method: 'POST',
+    path: '/api/searchRecorridosByStreet',
+    config: {
+      auth: false,
+      handler: (request, reply) => {
+        let street = request.payload.street;
+        
+        db.find({
+          "selector": {
+            "path": {
+              "$elemMatch" : {
+                "street": {"$regex": "(?i)"+street }
+              }
+            }
+          },
+          "fields": [
+   
+          ]
+          }, function(err, result) {
+            if (err) {
+              throw err;
+            }
+
+            console.log(result)
+            return reply(result.docs);
+
+          });
+              
+
+        },
+        validate: {
+          payload: Joi.object().keys({
+            street: Joi.string()
           })
       }
     }
