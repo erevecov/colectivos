@@ -26,18 +26,22 @@ table.dataTable tbody tr.selected {
   </div>
 
   <div class="row">
-    <div class="col-md-6 col-md-offset-3">
+    <div class="col-md-8 col-md-offset-2">
       <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <button class="btn btn-success" id="create" role="button" data-toggle="collapse" href="#collapseExample" aria-expanded="false" aria-controls="collapseExample"><h1>CREAR</h1></button>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
           <button class="btn btn-warning" id="mod" role="button" data-toggle="collapse" href="#collapseMod" aria-expanded="false" aria-controls="collapseMod" disabled><h1>MODIFICAR</h1></button>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
           <button class="btn btn-danger" id="delButton" disabled><h1>ELIMINAR</h1></button>
+        </div>
+
+        <div class="col-md-3">
+          <button class="btn btn-info" data-toggle="modal" data-target="#myModal" id="asignRecorrido" disabled><h1>Asignar</h1></button>
         </div>
       </div>
       <br>
@@ -84,6 +88,34 @@ table.dataTable tbody tr.selected {
         </div>
       </div>
 
+
+            <!-- Modal -->
+      <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="myModalLabel"></h4>
+            </div>
+            <div class="modal-body">
+              <!--<center><select style="width: 80%;" id="search-colectivo"><option></option></select> </center>-->
+
+              <table id="recorridosTable" class="table" cellspacing="0" width="100%">
+                <thead>
+                  <th>Recorrido</th>
+                </thead>
+                <tbody>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-primary" id="savePR">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -96,6 +128,7 @@ table.dataTable tbody tr.selected {
         <thead>
           <th style="display:none">_id</th>
           <th style="display:none">_rev</th>
+          <th style="display:none">recorridos</th>
           <th>Nombre</th>
           <th>Latitud</th>
           <th>Longitud</th>
@@ -116,6 +149,8 @@ table.dataTable tbody tr.selected {
 {{#extend "js"}}
 <script>
 var datatable;
+var recorridosTable;
+var recorridosTableCount = 0;
 var rowData;
 var selectedRow;
 var selectedParadero;
@@ -304,6 +339,7 @@ $('#createButton').on('click', function(){
         datatable.row.add( {
           "_id": data._id,
           "_rev": data._rev,
+          "recorridos": data.recorridos,
           "name": data.name,
           "lat": data.lat,
           "lng": data.lng,
@@ -334,6 +370,51 @@ $('#createButton').on('click', function(){
 
 });
 
+$('#savePR').click(function(){
+  var recorridos = [];
+  var recorridosString = '';
+
+  $('#recorridosTable tr').each(function(index, element){ // pre seleccionar patentes
+    if($(element).hasClass('selected')){
+      recorridos.push($(element)[0].innerText);
+    } 
+  }); 
+
+  recorridosString = JSON.stringify(recorridos);
+
+  $.ajax({
+    url: '/api/paraderosR',
+    type: 'PUT',
+    data: {id: rowData._id, rev: rowData._rev, recorridos: recorridosString, name:rowData.name, lat: rowData.lat, lng: rowData.lng},
+  })
+  .done(function(data) {
+
+    allParaderos[rowData.name].setMap(null);
+    newParadero(data.name, data.lat, data.lng, data.base64);
+    
+    datatable
+              .row( selectedRow )
+              .remove()
+              .draw();
+
+    datatable.search(data.name).columns().search('').draw();
+
+    datatable.row.add( {
+            "_id": data._id,
+            "_rev": data._rev,
+            "recorridos": recorridos,
+            "name": data.name,
+            "lat": data.lat,
+            "lng": data.lng,
+          }).draw();
+    
+  })
+  .fail(function() {
+    console.log("error");
+  });
+  
+});
+
 $('#mytable tbody').on( 'click', 'tr', function () {
   selectedRow = datatable.row(this);
   rowData = datatable.row( this ).data()
@@ -349,12 +430,62 @@ $('#mytable tbody').on( 'click', 'tr', function () {
   if ( $(this).hasClass('selected') ) {
     $('#mod').prop('disabled', true);
     $('#delButton').prop('disabled', true);
+    $('#asignRecorrido').prop('disabled', true);
   }
   else {
     $('#mod').prop('disabled', false);
     $('#delButton').prop('disabled', false);
+    $('#asignRecorrido').prop('disabled', false);
   }
 
+});
+
+$('#asignRecorrido').click(function() {
+  $('#myModalLabel').text('Asignar recorrido a paradero '+rowData.name);
+  $.ajax({
+    url: '/api/recorridos'
+  })
+  .done(function(data) {
+    if (recorridosTableCount === 0) {
+      recorridosTable = $('#recorridosTable').dataTable({
+      "bAutoWidth" : false,
+      "aaData": data,
+      "columns" : [ 
+        {"data" : "name"}
+      ],
+      "select":
+        {
+          style: 'multiple'
+        }
+      });
+
+    }else{
+      recorridosTableCount++;
+      recorridosTable.rows().remove().draw();  //limpiar tabla de recorridos
+
+      $.each(data, function(index, val) {
+        recorridosTable.row.add( {
+          "recorrido": data.name
+        }).draw();
+      });
+    }
+
+    
+    $('#recorridosTable tr').each(function(index, element){ // pre seleccionar recorridos
+      $(element).removeClass('selected');
+      var re = $(element).find("td").eq(0).html();
+      rowData.recorridos.forEach(function(re1) {
+        if(re==re1){
+          $(element).toggleClass('selected');
+        }
+      });  
+    });  
+
+  })
+  .fail(function() {
+    console.log("error al obtener colectivos");
+  });
+  
 });
 
 
@@ -517,12 +648,13 @@ function getParaderos() {
       "columns" : [
           {"data" : "_id"},
           {"data" : "_rev"},
+          {"data" : "recorridos"},
           {"data" : "name"},
           {"data" : "lat"},
           {"data" : "lng"},
       ],
       "columnDefs": [
-          {"targets": [ 0,1 ],
+          {"targets": [ 0,1,2 ],
            "visible": false,
            "searchable": false},
       ],

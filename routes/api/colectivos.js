@@ -16,8 +16,7 @@ const Colectivos = [{
         "fields": [
           "_id",
           "_rev",
-          "patent",
-          "code"
+          "patent"
         ],
         "sort": [{
           "_id": "desc"
@@ -39,11 +38,10 @@ const Colectivos = [{
             let id = request.payload.id;
             let rev = request.payload.rev;
             let patent = request.payload.patent;
-            let code = request.payload.code;
 
             db.destroy(id, rev, function(err, result, header) {
               if (!err) {
-                db.insert({ patent: patent, code: code }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_colectivo', function(err, body, header) {
+                db.insert({ patent: patent }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_colectivo', function(err, body, header) {
                   if (err) {
                     return console.log(err.message);
                   }else{
@@ -51,8 +49,7 @@ const Colectivos = [{
                     var newObj = {
                       _id: body.id,
                       _rev: body.rev,
-                      patent: patent,
-                      code: code
+                      patent: patent
                     }
 
                     return reply(newObj);
@@ -65,8 +62,7 @@ const Colectivos = [{
             payload: Joi.object().keys({
                 id: Joi.string(),
                 rev: Joi.string(),
-                patent: Joi.string(),
-                code: Joi.string()
+                patent: Joi.string()
             })
         }
     }
@@ -77,7 +73,6 @@ const Colectivos = [{
     config: {
         handler: (request, reply) => {
             let patent = request.payload.patent;
-            let code = request.payload.code;
 
             db.find({
               "selector": {
@@ -97,12 +92,12 @@ const Colectivos = [{
                 }
 
                 if(result.docs.length == 0) {
-                  db.insert({ patent: patent, code: code }, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_colectivo', function(err, body, header) {
+                  db.insert({ patent: patent }, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_colectivo', function(err, body, header) {
                     if (err) {
                       return console.log(err.message);
                     }else{
 
-                      var obj = {_id: body.id, _rev: body.rev, patent: patent, code:code};
+                      var obj = {_id: body.id, _rev: body.rev, patent: patent};
                       console.log(obj)
                       return reply(obj);
                     }
@@ -115,8 +110,7 @@ const Colectivos = [{
         },
         validate: {
             payload: Joi.object().keys({
-                patent: Joi.string(),
-                code: Joi.string()
+                patent: Joi.string()
             })
         }
     }

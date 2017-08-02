@@ -17,10 +17,11 @@ const Paraderos = [{
         "fields": [
           "_id",
           "_rev",
+          "recorridos",
           "name",
           "lat",
           "lng",
-          "base64"
+          "base64",
         ],
         "sort": [{
           "_id": "desc"
@@ -41,6 +42,7 @@ const Paraderos = [{
         handler: (request, reply) => {
             let id = request.payload.id;
             let rev = request.payload.rev;
+            let recorridos = request.payload.recorridos;
             let name = request.payload.name;
             let lat = request.payload.lat;
             let lng = request.payload.lng;
@@ -54,6 +56,7 @@ const Paraderos = [{
               "fields": [
                 "_id",
                 "_rev",
+                "recorridos",
                 "name",
                 "lat",
                 "lng",
@@ -73,7 +76,7 @@ const Paraderos = [{
                   db.destroy(id, rev, function(err, result, header) {
                     if (!err) {
                       QRCode.toDataURL(name+lat+lng, function (err, url) {
-                        db.insert({ name: name, lat: lat, lng: lng, base64:url }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_paradero', function(err, body, header) {
+                        db.insert({ recorridos: recorridos, name: name, lat: lat, lng: lng, base64:url }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_paradero', function(err, body, header) {
                           if (err) {
                             return console.log(err.message);
                           }else{
@@ -81,6 +84,7 @@ const Paraderos = [{
                             var newObj = {
                               _id: body.id,
                               _rev: body.rev,
+                              recorridos: recorridos,
                               name: name,
                               lat: lat,
                               lng: lng,
@@ -108,6 +112,58 @@ const Paraderos = [{
             payload: Joi.object().keys({
                 id: Joi.string(),
                 rev: Joi.string(),
+                recorridos: Joi.string(),
+                name: Joi.string(),
+                lat: Joi.string(),
+                lng: Joi.string()
+            })
+        }
+    }
+},
+{
+    method: 'PUT',
+    path: '/api/paraderosR',
+    config: {
+      handler: (request, reply) => {
+        let id = request.payload.id;
+        let rev = request.payload.rev;
+        let recorridos = request.payload.recorridos;
+        let name = request.payload.name;
+        let lat = request.payload.lat;
+        let lng = request.payload.lng;
+
+        db.destroy(id, rev, function(err, result, header) {
+          if (!err) {
+            QRCode.toDataURL(name+lat+lng, function (err, url) {
+              db.insert({ recorridos: recorridos, name: name, lat: lat, lng: lng, base64:url }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_paradero', function(err, body, header) {
+                if (err) {
+                  return console.log(err.message);
+                }else{
+
+                  var newObj = {
+                    _id: body.id,
+                    _rev: body.rev,
+                    recorridos: recorridos,
+                    name: name,
+                    lat: lat,
+                    lng: lng,
+                    base64: url
+                  }
+
+                  return reply(newObj);
+                }
+              });
+            })
+          }
+        });
+                  
+
+        },
+        validate: {
+            payload: Joi.object().keys({
+                id: Joi.string(),
+                rev: Joi.string(),
+                recorridos: Joi.string(), 
                 name: Joi.string(),
                 lat: Joi.string(),
                 lng: Joi.string()
@@ -143,7 +199,7 @@ const Paraderos = [{
                   }
 
                   if(result.docs.length == 0) {
-                    db.insert({ name: name, lat: lat, lng: lng, base64: url }, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_paradero', function(err, body, header) {
+                    db.insert({ recorridos:[], name: name, lat: lat, lng: lng, base64: url }, moment().format('YYYY-MM-DDTHH:mm:ss.SSS')+'_paradero', function(err, body, header) {
                       if (err) {
                         return console.log(err.message);
                       }else{

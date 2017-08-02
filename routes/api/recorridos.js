@@ -17,7 +17,8 @@ const Recorridos = [{
           "_id",
           "_rev",
           "name",
-          "path"
+          "path",
+          "colectivos"
         ],
         "sort": [{
           "_id": "desc"
@@ -62,7 +63,7 @@ const Recorridos = [{
 			      if (err) {
 			        return console.log(err.message);
 			      }else{
-			        var obj = {_id: body.id, _rev: body.rev, name: name};
+			        var obj = {_id: body.id, _rev: body.rev, name: name, colectivos: []};
 			        return reply(obj);
 			      }
 			    });
@@ -78,6 +79,71 @@ const Recorridos = [{
             payload: Joi.object().keys({
                 name: Joi.string(),
                 path: Joi.string()
+            })
+        }
+    }
+},
+{
+  method: 'PUT',
+  path: '/api/recorridos',
+  config: {
+      handler: (request, reply) => {
+        let id = request.payload.id;
+        let rev = request.payload.rev;
+        let name = request.payload.name;
+        let path = JSON.parse(request.payload.path);
+        let colectivos = JSON.parse(request.payload.colectivos);
+
+        db.destroy(id, rev, function(err, result, header) {
+          if (!err) {
+            
+            db.insert({ name: name, path: path, colectivos: colectivos }, moment().format('YYYY-MM-DDTHH:mm:ss.zzz')+'_recorrido', function(err, body, header) {
+              if (err) {
+                return console.log(err.message);
+              }else{
+
+                var newObj = {
+                  _id: body.id,
+                  _rev: body.rev,
+                  name: name
+                }
+
+                return reply(newObj);
+              }
+            });
+          }
+        });
+            
+      },
+      validate: {
+          payload: Joi.object().keys({
+              id: Joi.string(),
+              rev: Joi.string(),
+              name: Joi.string(),
+              path: Joi.string(),
+              colectivos: Joi.string()
+          })
+      }
+  }
+},
+{
+    method: 'DELETE',
+    path: '/api/recorridos',
+    config: {
+        handler: (request, reply) => {
+            let id = request.payload.id;
+            let rev = request.payload.rev;
+
+            db.destroy(id, rev, function(err, result, header) {
+              if (!err) {
+                  return reply(result);
+              }
+            });
+        },
+        validate: {
+            payload: Joi.object().keys({
+                id: Joi.string(),
+                rev: Joi.string()
             })
         }
     }

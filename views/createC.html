@@ -44,10 +44,7 @@ table.dataTable tbody tr.selected {
               <label>Patente</label>
               <input type="text" class="form-control" id="newPatent" placeholder="Patente" required>
             </div>
-            <div class="form-group">
-              <label>Código</label>
-              <input type="text" class="form-control" id="newCode" placeholder="Código" required>
-            </div>
+          
 
             <button type="submit" id="createButton" class="btn btn-default">Crear</button>
 
@@ -61,10 +58,7 @@ table.dataTable tbody tr.selected {
               <label>Patente</label>
               <input type="text" class="form-control" id="modPatent" placeholder="Patente" required>
             </div>
-            <div class="form-group">
-              <label>Código</label>
-              <input type="text" class="form-control" id="modCode" placeholder="Código" required>
-            </div>
+         
 
             <button type="submit" id="modButton" class="btn btn-default">Modificar</button>
 
@@ -84,7 +78,6 @@ table.dataTable tbody tr.selected {
           <th style="display:none">_id</th>
           <th style="display:none">_rev</th>
           <th>Patente</th>
-          <th>Código</th>
         </thead>
         <tbody>
         </tbody>
@@ -107,15 +100,13 @@ var selectedRow;
 
 $('#createButton').on('click', function(){
   var patent = $('#newPatent').val();
-  var code = $('#newCode').val();
   $('#newPatent').val('');
-  $('#newCode').val('');
 
   if(patent.length == 6) {
     $.ajax({
       url: '/api/colectivos',
       type: 'POST',
-      data: {patent: patent, code: code}
+      data: {patent: patent}
     })
     .done(function(data) {
       if (data.error) {
@@ -131,8 +122,7 @@ $('#createButton').on('click', function(){
         datatable.row.add( {
           "_id": data._id,
           "_rev": data._rev,
-          "patent": data.patent,
-          "code": data.code
+          "patent": data.patent
         }).draw();
 
         swal({
@@ -161,7 +151,6 @@ $('#mytable tbody').on( 'click', 'tr', function () {
 
 
   $('#modPatent').val(rowData.patent);
-  $('#modCode').val(rowData.code);
 
   if ( $(this).hasClass('selected') ) {
     $('#mod').prop('disabled', true);
@@ -177,7 +166,6 @@ $('#mytable tbody').on( 'click', 'tr', function () {
 
 $('#modButton').on('click', function(e){
   var patent = $('#modPatent').val();
-  var code = $('#modCode').val();
 
   swal({
     title: 'Estás seguro de modificar el colectivo de patente '+ rowData.patent +'?',
@@ -191,11 +179,10 @@ $('#modButton').on('click', function(e){
     cancelButtonClass: 'btn btn-primary',
     buttonsStyling: false
   }).then(function () {
-    console.log("test")
     $.ajax({
       url: '/api/colectivos',
       type: 'PUT',
-      data: {id: rowData._id, rev: rowData._rev, patent: patent, code, code }
+      data: {id: rowData._id, rev: rowData._rev, patent: patent}
     })
     .done(function(data) {
       datatable
@@ -206,8 +193,7 @@ $('#modButton').on('click', function(e){
       datatable.row.add( {
         "_id": data._id,
         "_rev": data._rev,
-        "patent": data.patent,
-        "code": data.code
+        "patent": data.patent
       }).draw();
 
       swal({
@@ -290,8 +276,7 @@ function getColectivos() {
       "columns" : [
           {"data" : "_id"},
           {"data" : "_rev"},
-          {"data" : "patent"},
-          {"data" : "code"},
+          {"data" : "patent"}
       ],
       "columnDefs": [
           {"targets": [ 0,1 ],

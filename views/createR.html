@@ -54,11 +54,15 @@ table.dataTable tbody tr.selected {
         </div>
 
         <div class="col-md-4">
+          <!--
           <button class="btn btn-warning" id="mod" role="button" data-toggle="collapse" href="#collapseMod" aria-expanded="false" aria-controls="collapseMod" disabled><h1>MODIFICAR</h1></button>
+          -->
+          <button class="btn btn-danger" id="delButton" disabled><h1>ELIMINAR</h1></button>
         </div>
 
         <div class="col-md-4">
-          <button class="btn btn-danger" id="delButton" disabled><h1>ELIMINAR</h1></button>
+          <button class="btn btn-warning" id="asignColectivo" data-toggle="modal" data-target="#myModal" disabled><h1>Asignar Colectivo</h1></button>
+          
         </div>
       </div>
       <br>
@@ -75,7 +79,35 @@ table.dataTable tbody tr.selected {
 
         </div>
       </div>
+      
+      <!-- Modal -->
+      <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="myModalLabel"></h4>
+            </div>
+            <div class="modal-body">
+              <!--<center><select style="width: 80%;" id="search-colectivo"><option></option></select> </center>-->
 
+              <table id="colectivosTable" class="table" cellspacing="0" width="100%">
+                <thead>
+                  <th>Patente</th>
+                </thead>
+                <tbody>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-primary" id="saveRC">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!--
       <div class="collapse" id="collapseMod">
         <div class="well">
 
@@ -88,6 +120,7 @@ table.dataTable tbody tr.selected {
 
         </div>
       </div>
+      -->
 
     </div>
   </div>
@@ -101,6 +134,7 @@ table.dataTable tbody tr.selected {
         <thead>
           <th style="display:none">_id</th>
           <th style="display:none">_rev</th>
+          <th style="display:none">colectivos</th>
           <th>Nombre</th>
         </thead>
         <tbody>
@@ -120,17 +154,20 @@ table.dataTable tbody tr.selected {
 <script>
 var datatable;
 var streetTable;
+var colectivosTable;
+var colectivosTableCount = 0;
 var rowData;
 var selectedRow;
 var selectedRecorrido;
-var allRecorridos = [];
+var allRecorridos = []; // datos del recorrido
+var allRecorridosPoly = []; // objetos polyline del mapa
 var infoWindows = [];
 var map;
 var flag;
 var creatingStatus = 0;
 var creatingRecorrido = [];
 var lastPointSelected = [];
-var modStatus = 0;
+//var modStatus = 0;
 var objectsToRemove = [];
 
 var flagIcon = {
@@ -244,27 +281,163 @@ function closeAllInfoWindows() {
 }
 
 function newRecorrido(name, path) {
- 
+  console.log(allRecorridos[name])
+  var arr = [];
+
+  $.each(path, function(index, val) {
+    arr.push(val.cord);
+  });
+
+  
+  var r = map.drawPolyline({
+    path: arr,
+    strokeColor: getRandomColor(),
+    strokeOpacity: 1,
+    strokeWeight: 10,
+    click: function(e) {
+
+    }
+  });
+
+  allRecorridosPoly[name] = r;
+
 }
 
-function chargeP(data) {
+function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
+function chargeR(data) {
     if(map) {
       $.each(data, function(index, val) {
-        newParadero(val.name, val.path);
+        allRecorridos[val.name] = val.path;
+        newRecorrido(val.name, val.path);
       });
     }
 }
+
+$('#saveRC').click(function(){
+  var colectivos = [];
+  var colectivosString = '';
+  var pathString = '';
+
+  $('#colectivosTable tr').each(function(index, element){ // pre seleccionar patentes
+    if($(element).hasClass('selected')){
+      colectivos.push($(element)[0].innerText);
+    } 
+  }); 
+
+  colectivosString = JSON.stringify(colectivos);
+  pathString = JSON.stringify(rowData.path);
+
+  console.log({id: rowData._id, rev: rowData._rev, name:rowData.name, path: pathString, colectivos: colectivosString})
+
+  $.ajax({
+    url: '/api/recorridos',
+    type: 'PUT',
+    data: {id: rowData._id, rev: rowData._rev, name:rowData.name, path: pathString, colectivos: colectivosString},
+  })
+  .done(function(data) {
+    allRecorridosPoly[rowData.name].setMap(null);
+    newRecorrido(rowData.name, rowData.path);
+    allRecorridos[rowData.name] = rowData.path;
+    datatable
+              .row( selectedRow )
+              .remove()
+              .draw();
+
+    datatable.search(data.name).columns().search('').draw();
+
+    datatable.row.add( {
+            "_id": data._id,
+            "_rev": data._rev,
+            "colectivos": colectivos,
+            "name": data.name,
+          }).draw();
+
+    console.log(allRecorridos[rowData.name]);
+  })
+  .fail(function() {
+    console.log("error");
+  });
+  
+  
+  
+});
+
+$('#asignColectivo').click(function() {
+  $('#myModalLabel').text('Asignar colectivo a recorrido '+rowData.name);
+  $.ajax({
+    url: '/api/colectivos'
+  })
+  .done(function(data) {
+
+    if (colectivosTableCount === 0) {
+      colectivosTable = $('#colectivosTable').dataTable({
+      "bAutoWidth" : false,
+      "aaData": data,
+      "columns" : [ 
+        {"data" : "patent"}
+      ],
+      "select":
+        {
+          style: 'multiple'
+        }
+      });  
+    }else{
+      colectivosTableCount++;
+      colectivosTable.rows().remove().draw();  //limpiar tabla de colectivos
+
+      $.each(data, function(index, val) {
+        colectivosTable.row.add( {
+          "patent": data.patent
+        }).draw();
+      });
+    }
+
+    
+    $('#colectivosTable tr').each(function(index, element){ // pre seleccionar patentes
+      $(element).removeClass('selected');
+      var pt = $(element).find("td").eq(0).html();
+      rowData.colectivos.forEach(function(pt1) {
+        if(pt==pt1){
+          $(element).toggleClass('selected');
+        }
+      });  
+    });  
+
+  })
+  .fail(function() {
+    console.log("error al obtener colectivos");
+  });
+  
+});
 
 $('#create').on('click', function(){
   if(creatingStatus == 0) {
     creatingStatus = 1;
     $('#map-container').css('border', '3px solid #1abc9c');
+    streetTable.rows().remove().draw();
   }else{
     creatingStatus = 0;
     $('#map-container').css('border', '0px solid #1abc9c');
+    streetTable.rows().remove().draw();
+    creatingRecorrido = [];
+    if(flag) {
+      flag.setMap(null);  
+    }
+
+    mapObjectRemover(objectsToRemove);
+
   }
 });
 
+/*
 $('#mod').on('click', function(){
   if(modStatus == 0) {
     modStatus = 1;
@@ -274,6 +447,7 @@ $('#mod').on('click', function(){
     $('#map-container').css('border', '0px solid #e67e22');
   }
 });
+*/
 
 $('#createButton').on('click', function(){
   var name = $('#newName').val();
@@ -299,10 +473,15 @@ $('#createButton').on('click', function(){
         mapObjectRemover(objectsToRemove);
         flag.setMap(null);
         creatingStatus = 0;
+        allRecorridos[data.name] = creatingRecorrido;
         newRecorrido(data.name, creatingRecorrido);
         creatingRecorrido = [];
-        
+
         $('#map-container').css('border', '0px solid #1abc9c');
+
+
+        streetTable.rows().remove().draw(); //limpiar tabla de calles
+
 
         datatable.row.add( {
           "_id": data._id,
@@ -335,26 +514,46 @@ $('#createButton').on('click', function(){
 
 $('#mytable tbody').on( 'click', 'tr', function () {
   selectedRow = datatable.row(this);
-  rowData = datatable.row( this ).data()
+  rowData = datatable.row( this ).data();
+  chargeStreetTable(rowData.name);
+
 
   closeAllInfoWindows();
+  /*
   allParaderos[rowData.name].infoWindow.open(map, allParaderos[rowData.name]);
 
   $('#modName').val(rowData.name);
   $('#modLat').val(rowData.lat);
   $('#modLng').val(rowData.lng);
+  
   map.setCenter(rowData.lat, rowData.lng);
+  */
+
 
   if ( $(this).hasClass('selected') ) {
-    $('#mod').prop('disabled', true);
+    //$('#mod').prop('disabled', true);
     $('#delButton').prop('disabled', true);
+    $('#asignColectivo').prop('disabled', true);
   }
   else {
-    $('#mod').prop('disabled', false);
+    //$('#mod').prop('disabled', false);
     $('#delButton').prop('disabled', false);
+    $('#asignColectivo').prop('disabled', false);
   }
 
 });
+
+
+function chargeStreetTable(name) {
+  streetTable.rows().remove().draw();
+  $.each(allRecorridos[name], function(index, val) {
+    streetTable.row.add( {
+        "date": getTime(),
+        "street": val.street
+      }).draw();
+    });
+}
+
 
 
 $('#modButton').on('click', function(e){
@@ -441,7 +640,7 @@ $('#modButton').on('click', function(e){
 
 $('#delButton').on('click', function(e){
   swal({
-    title: 'Estás seguro de eliminar el paradero '+ rowData.name +'?',
+    title: 'Estás seguro de eliminar el recorrido '+ rowData.name +'?',
     text: "No podrás revertir los cambios",
     type: 'warning',
     showCancelButton: true,
@@ -455,16 +654,14 @@ $('#delButton').on('click', function(e){
   }).then(function () {
 
     $.ajax({
-      url: '/api/paraderos',
+      url: '/api/recorridos',
       type: 'DELETE',
       data: {id: rowData._id, rev: rowData._rev}
     })
     .done(function(data) {
       datatable.search('').columns().search('').draw();
-      allParaderos[rowData.name].setMap(null);
-      $('#modName').val('');
-      $('#modLat').val('');
-      $('#modLng').val('');
+      allRecorridosPoly[rowData.name].setMap(null);
+  
       datatable
           .row( selectedRow )
           .remove()
@@ -511,7 +708,7 @@ function getRecorridos() {
   });
 
   prom.then((data) => {
-    //chargeP(data);
+    chargeR(data);
 
     datatable = $('#mytable').DataTable( {
       "responsive": true,
@@ -522,10 +719,11 @@ function getRecorridos() {
       "columns" : [
           {"data" : "_id"},
           {"data" : "_rev"},
+          {"data" : "colectivos"},
           {"data" : "name"}
       ],
       "columnDefs": [
-          {"targets": [ 0,1 ],
+          {"targets": [ 0,1,2 ],
            "visible": false,
            "searchable": false},
       ],
