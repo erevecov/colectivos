@@ -8,6 +8,7 @@ import Admin             from './admin';
 // API
 import APIColectivos     from './api/colectivos';
 import APIParaderos      from './api/paraderos';
+import APIRecorridos      from './api/recorridos';
 
 const Login = {
     method: ["GET", "POST"],
@@ -59,7 +60,8 @@ const Routes = [].concat(
     Home,
     Admin,
     APIColectivos,
-    APIParaderos
+    APIParaderos,
+    APIRecorridos
 );
 
 export default Routes;
